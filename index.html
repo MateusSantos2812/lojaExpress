@@ -1,0 +1,1126 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🛍️ LojaExpress Pro - Cliente & Back-Office ERP</title>
+    <!-- Conexão do PWA com o Manifest -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#4f46e5" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- ============================================================
+    HEADER & TROCADOR DE PAPEL (CLIENTE VS ADMIN)
+    ============================================================ -->
+    <header class="app-header">
+      <div class="header-content">
+        <div class="brand-logo" onclick="trocarAba('loja')">
+          🛍️ LojaExpress Pro
+        </div>
+
+        <!-- Alternador de Papéis para Demonstração em Aula -->
+        <div class="role-switcher-box">
+          <button
+            class="role-btn active"
+            id="btn-role-cliente"
+            onclick="alternarVisao('cliente')"
+          >
+            👤 Cliente
+          </button>
+          <button
+            class="role-btn"
+            id="btn-role-admin"
+            onclick="alternarVisao('admin')"
+          >
+            ⚙️ Back-Office (Admin)
+          </button>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px">
+          <!-- Perfil / Login do Cliente -->
+          <button
+            class="btn-auth-header"
+            id="btn-header-auth"
+            onclick="abrirModalAuthCliente()"
+          >
+            👤 <span id="lbl-cliente-logado">Entrar</span>
+          </button>
+
+          <!-- Carrinho do Cliente -->
+          <button
+            class="btn-cart"
+            id="btn-carrinho-header"
+            onclick="abrirCarrinho()"
+          >
+            🛒 <span class="cart-badge" id="badge-cart-count">0</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div id="app-toast" class="toast"></div>
+
+    <main class="container">
+      <!-- ============================================================
+        VISÃO CLIENTE: CATÁLOGO DE PRODUTOS
+        ============================================================ -->
+      <section id="view-loja" class="view-section active">
+        <div class="promo-banner">
+          <div>
+            <h2>🔥 Cupons Oficiais Vigentes:</h2>
+            <p>Aplicados automaticamente ou copie para o carrinho:</p>
+          </div>
+          <div
+            id="banner-cupom-pills"
+            style="display: flex; gap: 8px; flex-wrap: wrap"
+          ></div>
+        </div>
+
+        <div class="filters-bar">
+          <input
+            type="text"
+            class="search-input"
+            id="input-busca"
+            placeholder="🔍 Buscar lanches, pizzas, bebidas..."
+            oninput="filtrarProdutos()"
+          />
+          <div class="category-chips">
+            <button
+              class="chip active"
+              onclick="filtrarCategoria('todos', this)"
+            >
+              Todos
+            </button>
+            <button class="chip" onclick="filtrarCategoria('Lanches', this)">
+              🍔 Lanches
+            </button>
+            <button class="chip" onclick="filtrarCategoria('Pizzas', this)">
+              🍕 Pizzas
+            </button>
+            <button class="chip" onclick="filtrarCategoria('Bebidas', this)">
+              🥤 Bebidas
+            </button>
+            <button
+              class="chip"
+              onclick="filtrarCategoria('Eletrônicos', this)"
+            >
+              📱 Eletrônicos
+            </button>
+          </div>
+        </div>
+
+        <!-- Grid de Produtos -->
+        <div class="products-grid" id="grid-produtos"></div>
+      </section>
+
+      <!-- ============================================================
+        VISÃO CLIENTE: TELA DEDICADA DE DETALHE DO PRODUTO
+        ============================================================ -->
+      <section id="view-produto-detalhe" class="view-section">
+        <button
+          style="
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 14px;
+          "
+          onclick="trocarAba('loja')"
+        >
+          &larr; Voltar ao Catálogo
+        </button>
+
+        <div class="product-detail-layout">
+          <div class="detail-img-box" id="detalhe-img">🍔</div>
+
+          <div style="display: flex; flex-direction: column">
+            <span
+              id="detalhe-categoria"
+              style="
+                font-size: 0.75rem;
+                font-weight: bold;
+                color: var(--text-muted);
+                text-transform: uppercase;
+              "
+            ></span>
+            <h2 id="detalhe-nome" style="font-size: 1.4rem; margin: 4px 0"></h2>
+            <div
+              id="detalhe-rating"
+              style="
+                color: var(--warning);
+                font-size: 0.85rem;
+                margin-bottom: 8px;
+              "
+            ></div>
+            <p
+              id="detalhe-descricao"
+              style="
+                color: var(--text-muted);
+                line-height: 1.6;
+                font-size: 0.9rem;
+              "
+            ></p>
+            <div
+              style="
+                font-size: 0.8rem;
+                color: #10b981;
+                font-weight: bold;
+                margin-top: 4px;
+              "
+              id="detalhe-estoque-txt"
+            ></div>
+
+            <div class="detail-price" id="detalhe-preco">R$ 0,00</div>
+
+            <!-- Seletor de Quantidade Interativo -->
+            <div class="quantity-picker">
+              <span style="font-size: 0.85rem; font-weight: bold"
+                >Quantidade:</span
+              >
+              <button class="btn-qty-large" onclick="ajustarQtdDetalhe(-1)">
+                -
+              </button>
+              <span
+                id="detalhe-qtd-valor"
+                style="
+                  font-size: 1.2rem;
+                  font-weight: bold;
+                  min-width: 30px;
+                  text-align: center;
+                "
+                >1</span
+              >
+              <button class="btn-qty-large" onclick="ajustarQtdDetalhe(1)">
+                +
+              </button>
+            </div>
+
+            <button
+              class="btn-add-cart-large"
+              onclick="adicionarDetalheAoCarrinho()"
+            >
+              🛒 Adicionar ao Pedido &bull;
+              <span id="detalhe-btn-subtotal">R$ 0,00</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Avaliações de Clientes & Gatilho Pós-Entrega -->
+        <div
+          style="
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+          "
+        >
+          <h3>⭐ Opiniões de Quem Já Comprou</h3>
+          <div
+            id="detalhe-lista-avaliacoes"
+            style="
+              margin: 14px 0;
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+            "
+          ></div>
+
+          <div
+            id="box-formulario-avaliacao"
+            style="
+              background: #f8fafc;
+              padding: 16px;
+              border-radius: var(--radius-md);
+              border: 1px solid var(--border);
+            "
+          >
+            <!-- Liberado se o Admin der baixa como Entregue -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+        VISÃO CLIENTE: MEUS PEDIDOS & RASTREAMENTO
+        ============================================================ -->
+      <section id="view-pedidos-cliente" class="view-section">
+        <h2 style="font-size: 1.3rem; margin-bottom: 16px">
+          📦 Meus Pedidos &amp; Rastreamento
+        </h2>
+        <div id="lista-pedidos-cliente"></div>
+      </section>
+
+      <!-- ============================================================
+        VISÃO CLIENTE: MEU PERFIL
+        ============================================================ -->
+      <section id="view-perfil-cliente" class="view-section">
+        <div
+          style="
+            background: white;
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            max-width: 550px;
+            margin: 0 auto;
+            text-align: left;
+          "
+        >
+          <h2 style="margin-bottom: 12px; color: var(--primary)">
+            👤 Meu Perfil
+          </h2>
+          <div id="dados-cliente-perfil"></div>
+          <button
+            class="btn-submit"
+            style="background: var(--danger); margin-top: 16px"
+            onclick="logoutCliente()"
+          >
+            🚪 Sair da Conta (Logout)
+          </button>
+        </div>
+      </section>
+
+      <!-- ============================================================
+        VISÃO ADMINISTRADOR: BACK-OFFICE ERP (COMPLETO)
+        ============================================================ -->
+      <section id="view-admin" class="view-section">
+        <div class="admin-panel">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 16px;
+              flex-wrap: wrap;
+              gap: 10px;
+            "
+          >
+            <div>
+              <h2 style="color: var(--admin-theme); margin: 0">
+                🛠️ Painel Administrativo ERP
+              </h2>
+              <small style="color: var(--text-muted)"
+                >Gestão Completa de Vendas, Produtos, Clientes e Backup</small
+              >
+            </div>
+            <button
+              class="role-btn"
+              style="background: #dc2626; color: white"
+              onclick="logoutAdmin()"
+            >
+              🚪 Encerrar Sessão Admin
+            </button>
+          </div>
+
+          <!-- Sub-Abas do Admin -->
+          <div class="admin-nav">
+            <button
+              class="admin-tab-btn active"
+              onclick="trocarSubAbaAdmin('adm-dash', this)"
+            >
+              📊 Dashboard Vendas
+            </button>
+            <button
+              class="admin-tab-btn"
+              onclick="trocarSubAbaAdmin('adm-pedidos', this)"
+            >
+              📋 Gestão de Pedidos (CRUD)
+            </button>
+            <button
+              class="admin-tab-btn"
+              onclick="trocarSubAbaAdmin('adm-produtos', this)"
+            >
+              📦 Gestão de Produtos (CRUD)
+            </button>
+            <button
+              class="admin-tab-btn"
+              onclick="trocarSubAbaAdmin('adm-clientes', this)"
+            >
+              👥 Base de Clientes (CRUD)
+            </button>
+            <button
+              class="admin-tab-btn"
+              onclick="trocarSubAbaAdmin('adm-cupons', this)"
+            >
+              🎟️ Cupons Promocionais
+            </button>
+            <button
+              class="admin-tab-btn"
+              onclick="trocarSubAbaAdmin('adm-backup', this)"
+            >
+              💾 Backup &amp; Senha
+            </button>
+          </div>
+
+          <!-- 1. DASHBOARD DE VENDAS -->
+          <div id="adm-dash" class="admin-subview active">
+            <div class="kpi-grid">
+              <div class="kpi-card">
+                <div class="lbl">Faturamento Total</div>
+                <div class="val" id="kpi-faturamento">R$ 0,00</div>
+              </div>
+              <div class="kpi-card">
+                <div class="lbl">Total de Pedidos</div>
+                <div class="val" id="kpi-total-pedidos">0</div>
+              </div>
+              <div class="kpi-card">
+                <div class="lbl">Ticket Médio</div>
+                <div class="val" id="kpi-ticket-medio">R$ 0,00</div>
+              </div>
+              <div class="kpi-card">
+                <div class="lbl">Clientes Cadastrados</div>
+                <div class="val" id="kpi-total-clientes">0</div>
+              </div>
+            </div>
+
+            <h3>📈 Resumo de Pedidos por Status:</h3>
+            <div
+              style="
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+                margin-top: 10px;
+              "
+              id="kpi-status-chips"
+            ></div>
+          </div>
+
+          <!-- 2. CRUD DE PEDIDOS (COM INCLUSÃO MANUAL E BAIXAS) -->
+          <div id="adm-pedidos" class="admin-subview">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+                flex-wrap: wrap;
+              "
+            >
+              <h3>📋 Pedidos Cadastrados (Dar Baixa / Editar)</h3>
+              <button class="btn-crud" onclick="abrirModalPedidoManual()">
+                ➕ Inserir Pedido Manual (Balcão)
+              </button>
+            </div>
+
+            <div style="overflow-x: auto">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Cliente</th>
+                    <th>Data</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Dar Baixa / Ação</th>
+                    <th>Excluir</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-adm-pedidos"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 3. CRUD DE PRODUTOS -->
+          <div id="adm-produtos" class="admin-subview">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+                flex-wrap: wrap;
+              "
+            >
+              <h3>📦 Catálogo de Produtos</h3>
+              <button class="btn-crud" onclick="abrirModalProduto()">
+                ➕ Cadastrar Novo Produto
+              </button>
+            </div>
+
+            <div style="overflow-x: auto">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Foto</th>
+                    <th>Nome</th>
+                    <th>Categoria</th>
+                    <th>Preço</th>
+                    <th>Estoque</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-adm-produtos"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 4. CRUD DE CLIENTES -->
+          <div id="adm-clientes" class="admin-subview">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+                flex-wrap: wrap;
+              "
+            >
+              <h3>👥 Base de Clientes Cadastrados</h3>
+              <button class="btn-crud" onclick="abrirModalClienteManual()">
+                ➕ Cadastrar Novo Cliente
+              </button>
+            </div>
+
+            <div style="overflow-x: auto">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>CPF</th>
+                    <th>Cidade/UF</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-adm-clientes"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 5. CRUD DE CUPONS -->
+          <div id="adm-cupons" class="admin-subview">
+            <h3>🎟️ Criar Novo Cupom Promocional</h3>
+            <div class="admin-form-grid">
+              <div class="admin-form-group">
+                <label>Código:</label
+                ><input
+                  type="text"
+                  id="cupom-cod"
+                  class="admin-input"
+                  placeholder="Ex: PROMO30"
+                  style="text-transform: uppercase"
+                />
+              </div>
+              <div class="admin-form-group">
+                <label>Tipo:</label
+                ><select id="cupom-tipo" class="admin-input">
+                  <option value="pct">% Percentual</option>
+                  <option value="reais">R$ Fixo</option>
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label>Valor:</label
+                ><input
+                  type="number"
+                  id="cupom-val"
+                  class="admin-input"
+                  placeholder="Ex: 20"
+                />
+              </div>
+              <div class="admin-form-group">
+                <label>Pedido Mínimo (R$):</label
+                ><input
+                  type="number"
+                  id="cupom-min"
+                  class="admin-input"
+                  value="0"
+                />
+              </div>
+              <div class="admin-form-group">
+                <label>Expira em:</label
+                ><input
+                  type="date"
+                  id="cupom-exp"
+                  class="admin-input"
+                  value="2026-12-31"
+                />
+              </div>
+            </div>
+            <button
+              class="btn-crud"
+              style="padding: 10px 20px"
+              onclick="salvarNovoCupomAdmin()"
+            >
+              ➕ Salvar Cupom
+            </button>
+
+            <h4 style="margin-top: 20px">Cupons Ativos no Banco:</h4>
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Regra</th>
+                  <th>Mínimo</th>
+                  <th>Validade</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-adm-cupons"></tbody>
+            </table>
+          </div>
+
+          <!-- 6. BACKUP JSON & ALTERAÇÃO DE SENHA DO ADMIN -->
+          <div id="adm-backup" class="admin-subview">
+            <h3>⚙️ Alterar Senha do Administrador</h3>
+            <div class="admin-form-grid" style="max-width: 500px">
+              <div class="admin-form-group">
+                <label>E-mail Admin:</label
+                ><input
+                  type="email"
+                  id="adm-cfg-email"
+                  class="admin-input"
+                  value="admin@loja.com"
+                />
+              </div>
+              <div class="admin-form-group">
+                <label>Nova Senha:</label
+                ><input
+                  type="password"
+                  id="adm-cfg-senha"
+                  class="admin-input"
+                  placeholder="Nova senha"
+                />
+              </div>
+            </div>
+            <button class="btn-crud" onclick="salvarCredenciaisAdmin()">
+              💾 Atualizar Senha Admin
+            </button>
+
+            <hr
+              style="
+                margin: 24px 0;
+                border: none;
+                border-top: 1px solid var(--border);
+              "
+            />
+
+            <h3>💾 Backup e Restauração Relacional (LocalStorage)</h3>
+            <div
+              style="display: flex; gap: 10px; margin: 14px 0; flex-wrap: wrap"
+            >
+              <button
+                class="btn-crud"
+                style="background: var(--primary)"
+                onclick="exportarBackupJSON()"
+              >
+                📥 Baixar Arquivo JSON
+              </button>
+              <label class="btn-crud" style="cursor: pointer">
+                📤 Restaurar Banco JSON
+                <input
+                  type="file"
+                  id="input-restore-json"
+                  accept=".json"
+                  style="display: none"
+                  onchange="importarBackupJSON(event)"
+                />
+              </label>
+              <button class="btn-crud delete" onclick="resetarBancoFabrica()">
+                ⚠️ Restaurar Dados Iniciais
+              </button>
+            </div>
+            <div
+              style="
+                background: #090d16;
+                color: #38bdf8;
+                font-family: monospace;
+                padding: 12px;
+                border-radius: 8px;
+                font-size: 0.75rem;
+                max-height: 160px;
+                overflow-y: auto;
+              "
+              id="json-viewer"
+            >
+              Clique em Baixar para gerar o payload JSON.
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ============================================================
+    MODAIS COMPLEMENTARES
+    ============================================================ -->
+    <!-- MODAL AUTH CLIENTE -->
+    <div class="modal" id="modal-auth-cliente">
+      <div class="modal-content">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+          "
+        >
+          <h3 id="auth-title">Acesso do Cliente</h3>
+          <button class="btn-close" onclick="fecharModal('modal-auth-cliente')">
+            ✕
+          </button>
+        </div>
+        <div class="auth-tabs">
+          <button
+            class="auth-tab-btn active"
+            id="tab-cli-login"
+            onclick="alternarAbaCliente('login')"
+          >
+            Já sou Cliente
+          </button>
+          <button
+            class="auth-tab-btn"
+            id="tab-cli-cad"
+            onclick="alternarAbaCliente('cad')"
+          >
+            Criar Conta
+          </button>
+        </div>
+
+        <form id="form-cli-login" onsubmit="loginCliente(event)">
+          <label style="font-size: 0.78rem; font-weight: bold">E-mail:</label>
+          <input
+            type="email"
+            id="cli-log-email"
+            required
+            class="admin-input"
+            style="width: 100%; margin-bottom: 10px"
+            value="ana@email.com"
+          />
+          <label style="font-size: 0.78rem; font-weight: bold">Senha:</label>
+          <input
+            type="password"
+            id="cli-log-senha"
+            required
+            class="admin-input"
+            style="width: 100%; margin-bottom: 12px"
+            value="123"
+          />
+          <button type="submit" class="btn-submit">
+            Entrar na Minha Conta
+          </button>
+        </form>
+
+        <form
+          id="form-cli-cad"
+          style="display: none"
+          onsubmit="cadastroCliente(event)"
+        >
+          <input
+            type="text"
+            id="cad-nome"
+            required
+            placeholder="Nome Completo"
+            class="admin-input"
+            style="width: 100%; margin-bottom: 8px"
+          />
+          <input
+            type="email"
+            id="cad-email"
+            required
+            placeholder="E-mail"
+            class="admin-input"
+            style="width: 100%; margin-bottom: 8px"
+          />
+          <input
+            type="password"
+            id="cad-senha"
+            required
+            placeholder="Senha"
+            class="admin-input"
+            style="width: 100%; margin-bottom: 8px"
+          />
+          <input
+            type="text"
+            id="cad-cpf"
+            required
+            placeholder="CPF"
+            class="admin-input"
+            style="width: 100%; margin-bottom: 8px"
+          />
+          <input
+            type="text"
+            id="cad-tel"
+            required
+            placeholder="WhatsApp"
+            class="admin-input"
+            style="width: 100%; margin-bottom: 8px"
+          />
+          <input
+            type="text"
+            id="cad-end"
+            required
+            placeholder="Endereço de Entrega"
+            class="admin-input"
+            style="width: 100%; margin-bottom: 8px"
+          />
+          <input
+            type="text"
+            id="cad-cid"
+            required
+            placeholder="Cidade - UF"
+            class="admin-input"
+            style="width: 100%; margin-bottom: 12px"
+            value="São Paulo - SP"
+          />
+          <button
+            type="submit"
+            class="btn-submit"
+            style="background: var(--accent)"
+          >
+            Salvar e Entrar
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL LOGIN ADMIN -->
+    <div class="modal" id="modal-login-admin">
+      <div class="modal-content" style="max-width: 400px; text-align: center">
+        <div style="font-size: 2.5rem; margin-bottom: 8px">🔐</div>
+        <h3>Acesso Restrito ao Back-Office</h3>
+        <p
+          style="
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+          "
+        >
+          Identifique-se com as credenciais de Administrador
+        </p>
+
+        <form onsubmit="autenticarAdmin(event)">
+          <input
+            type="email"
+            id="adm-login-email"
+            required
+            placeholder="admin@loja.com"
+            class="admin-input"
+            style="width: 100%; margin-bottom: 8px"
+            value="admin@loja.com"
+          />
+          <input
+            type="password"
+            id="adm-login-senha"
+            required
+            placeholder="Senha"
+            class="admin-input"
+            style="width: 100%; margin-bottom: 14px"
+            value="admin123"
+          />
+          <button
+            type="submit"
+            class="btn-submit"
+            style="background: var(--admin-theme); color: #fde047"
+          >
+            Acessar Painel ERP &rarr;
+          </button>
+        </form>
+        <small
+          style="color: var(--text-muted); margin-top: 10px; display: block"
+          >Padrão: admin@loja.com / admin123</small
+        >
+      </div>
+    </div>
+
+    <!-- MODAL CRUD PRODUTO -->
+    <div class="modal" id="modal-crud-produto">
+      <div class="modal-content">
+        <h3 id="modal-prod-title">Cadastrar Produto</h3>
+        <input type="hidden" id="prod-id" />
+        <div class="admin-form-grid" style="margin-top: 12px">
+          <div class="admin-form-group">
+            <label>Nome:</label
+            ><input type="text" id="prod-nome" class="admin-input" required />
+          </div>
+          <div class="admin-form-group">
+            <label>Categoria:</label
+            ><select id="prod-cat" class="admin-input">
+              <option>Lanches</option>
+              <option>Pizzas</option>
+              <option>Bebidas</option>
+              <option>Eletrônicos</option>
+            </select>
+          </div>
+          <div class="admin-form-group">
+            <label>Preço (R$):</label
+            ><input
+              type="number"
+              step="0.01"
+              id="prod-preco"
+              class="admin-input"
+              required
+            />
+          </div>
+          <div class="admin-form-group">
+            <label>Estoque (un):</label
+            ><input type="number" id="prod-est" class="admin-input" required />
+          </div>
+          <div class="admin-form-group">
+            <label>Emoji / Ícone:</label
+            ><input type="text" id="prod-img" class="admin-input" value="📦" />
+          </div>
+        </div>
+        <div class="admin-form-group" style="margin-bottom: 12px">
+          <label>Descrição:</label
+          ><textarea
+            id="prod-desc"
+            class="admin-input"
+            style="height: 60px"
+          ></textarea>
+        </div>
+        <button class="btn-submit" onclick="salvarProdutoCRUD()">
+          Salvar Produto
+        </button>
+        <button
+          class="btn-submit"
+          style="background: #64748b; margin-top: 4px"
+          onclick="fecharModal('modal-crud-produto')"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL CRUD CLIENTE MANUAL -->
+    <div class="modal" id="modal-crud-cliente">
+      <div class="modal-content">
+        <h3 id="modal-cli-title">Cadastrar Novo Cliente</h3>
+        <input type="hidden" id="cli-adm-id" />
+        <div class="admin-form-grid" style="margin-top: 12px">
+          <div class="admin-form-group">
+            <label>Nome:</label
+            ><input
+              type="text"
+              id="cli-adm-nome"
+              class="admin-input"
+              required
+            />
+          </div>
+          <div class="admin-form-group">
+            <label>E-mail:</label
+            ><input
+              type="email"
+              id="cli-adm-email"
+              class="admin-input"
+              required
+            />
+          </div>
+          <div class="admin-form-group">
+            <label>CPF:</label
+            ><input type="text" id="cli-adm-cpf" class="admin-input" required />
+          </div>
+          <div class="admin-form-group">
+            <label>Telefone:</label
+            ><input type="text" id="cli-adm-tel" class="admin-input" required />
+          </div>
+          <div class="admin-form-group">
+            <label>Cidade/UF:</label
+            ><input
+              type="text"
+              id="cli-adm-cid"
+              class="admin-input"
+              required
+              value="São Paulo - SP"
+            />
+          </div>
+          <div class="admin-form-group">
+            <label>Endereço:</label
+            ><input type="text" id="cli-adm-end" class="admin-input" required />
+          </div>
+        </div>
+        <button class="btn-submit" onclick="salvarClienteCRUD()">
+          Salvar Cliente
+        </button>
+        <button
+          class="btn-submit"
+          style="background: #64748b; margin-top: 4px"
+          onclick="fecharModal('modal-crud-cliente')"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL INSERIR PEDIDO MANUAL (BALCÃO) -->
+    <div class="modal" id="modal-crud-pedido-manual">
+      <div class="modal-content">
+        <h3>➕ Inserir Pedido Manual (Balcão / Telefone)</h3>
+        <div class="admin-form-grid" style="margin-top: 12px">
+          <div class="admin-form-group">
+            <label>Selecione o Cliente:</label>
+            <select id="ped-manual-cli" class="admin-input"></select>
+          </div>
+          <div class="admin-form-group">
+            <label>Selecione o Produto:</label>
+            <select id="ped-manual-prod" class="admin-input"></select>
+          </div>
+          <div class="admin-form-group">
+            <label>Quantidade:</label>
+            <input
+              type="number"
+              id="ped-manual-qtd"
+              class="admin-input"
+              value="1"
+              min="1"
+            />
+          </div>
+          <div class="admin-form-group">
+            <label>Status Inicial:</label>
+            <select id="ped-manual-status" class="admin-input">
+              <option value="Pendente">Pendente</option>
+              <option value="Em Preparo">Em Preparo</option>
+              <option value="Entregue">Entregue</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-submit" onclick="salvarPedidoManual()">
+          Lançar Pedido no Sistema
+        </button>
+        <button
+          class="btn-submit"
+          style="background: #64748b; margin-top: 4px"
+          onclick="fecharModal('modal-crud-pedido-manual')"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+
+    <!-- DRAWER DO CARRINHO -->
+    <div class="drawer-overlay" id="drawer-carrinho" onclick="fecharCarrinho()">
+      <div class="cart-drawer" onclick="event.stopPropagation()">
+        <div class="drawer-header">
+          <h3>🛒 Carrinho de Compras</h3>
+          <button class="btn-close" onclick="fecharCarrinho()">✕</button>
+        </div>
+        <div class="drawer-body" id="carrinho-itens-lista"></div>
+        <div style="padding: 0 16px">
+          <div
+            style="
+              background: #f8fafc;
+              padding: 10px;
+              border-radius: 8px;
+              border: 1px solid var(--border);
+              margin: 8px 0;
+            "
+          >
+            <label style="font-size: 0.75rem; font-weight: 700"
+              >🎟️ Cupom:</label
+            >
+            <div style="display: flex; gap: 6px; margin-top: 4px">
+              <input
+                type="text"
+                id="input-cupom"
+                placeholder="PROMO20"
+                style="
+                  flex: 1;
+                  padding: 6px;
+                  border: 1px solid var(--border);
+                  text-transform: uppercase;
+                  border-radius: 4px;
+                "
+              />
+              <button
+                onclick="aplicarCupomCarrinho()"
+                style="
+                  background: var(--text-main);
+                  color: white;
+                  border: none;
+                  padding: 6px 12px;
+                  border-radius: 4px;
+                  font-weight: bold;
+                  cursor: pointer;
+                "
+              >
+                Aplicar
+              </button>
+            </div>
+            <small
+              id="cupom-status-msg"
+              style="
+                font-size: 0.72rem;
+                display: block;
+                margin-top: 4px;
+                font-weight: bold;
+              "
+            ></small>
+          </div>
+        </div>
+        <div
+          style="
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            background: #fafafa;
+          "
+        >
+          <div class="summary-row">
+            <span>Subtotal:</span><span id="resumo-subtotal">R$ 0,00</span>
+          </div>
+          <div
+            class="summary-row"
+            id="linha-desconto"
+            style="display: none; color: var(--secondary)"
+          >
+            <span>Desconto:</span><span id="resumo-desconto">- R$ 0,00</span>
+          </div>
+          <div class="summary-row">
+            <span>Frete:</span><span>R$ 10,00</span>
+          </div>
+          <div class="summary-row total">
+            <span>Total:</span><span id="resumo-total">R$ 0,00</span>
+          </div>
+          <button
+            class="btn-add-cart-large"
+            style="width: 100%; margin-top: 10px"
+            onclick="finalizarPedidoCliente()"
+          >
+            Finalizar Compra &rarr;
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- NAVEGAÇÃO INFERIOR MOBILE -->
+    <nav class="bottom-nav" id="mobile-nav">
+      <button
+        class="nav-tab active"
+        id="tab-btn-loja"
+        onclick="trocarAba('loja')"
+      >
+        <span>🛍️</span> Loja
+      </button>
+      <button
+        class="nav-tab"
+        id="tab-btn-pedidos"
+        onclick="trocarAba('pedidos-cliente')"
+      >
+        <span>📦</span> Pedidos
+      </button>
+      <button
+        class="nav-tab"
+        id="tab-btn-perfil"
+        onclick="trocarAba('perfil-cliente')"
+      >
+        <span>👤</span> Perfil
+      </button>
+    </nav>
+    <script>
+      // Registra o Service Worker assim que a página carregar
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("./sw.js")
+            .then((registro) => {
+              console.log("✅ Service Worker Ativo! Escopo:", registro.scope);
+            })
+            .catch((erro) => {
+              console.error("❌ Falha ao registrar Service Worker:", erro);
+            });
+        });
+      }
+    </script>
+  </body>
+  <script src="script.js"></script>
+</html>
